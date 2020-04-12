@@ -4,42 +4,36 @@ def reward_function(params):
     and penalizing getting too close to the objects in front
     '''
 
+    import math
+
+    # Read input variables
+    waypoints = params['waypoints']
+    closest_waypoints = params['closest_waypoints']
+    heading = params['heading']
     all_wheels_on_track = params['all_wheels_on_track']
     distance_from_center = params['distance_from_center']
     track_width = params['track_width']
-    objects_distance = params['objects_distance']
-    _, next_object_index = params['closest_objects']
-    objects_left_of_center = params['objects_left_of_center']
-    is_left_of_center = params['is_left_of_center']
+    progress = params['progress']
+    steps = params['steps']
 
-    # Initialize reward with a small number but not zero
-    # because zero means off-track or crashed
-    reward = 1e-3
+    norm_dist = min(distance_from_center/(track_width*0.5), 1.0)
 
-    # Reward if the agent stays inside the two borders of the track
-    if all_wheels_on_track and (0.5 * track_width - distance_from_center) >= 0.05:
-        reward_lane = 1.0
-    else:
-        reward_lane = 1e-3
+    def cos_pi2(x):
+        return math.cos(norm_dist*1.57079632679)
 
-    # Penalize if the agent is too close to the next object
-    reward_avoid = 1.0
+    def pow2(x):
+        return -(x**2)+1
 
-    # Distance to the next object
-    distance_closest_object = objects_distance[next_object_index]
-    # Decide if the agent and the next object is on the same lane
-    is_same_lane = objects_left_of_center[next_object_index] == is_left_of_center
+    def pow16_7(x):
+        return -math.pow(abs(x), 2.285714) + 1
+    
+    def penalty():
+        return float(progress*2.0)/max(float(steps), 1.0)
 
-    if is_same_lane:
-        if 0.5 <= distance_closest_object < 0.8: 
-            reward_avoid *= 0.5
-        elif 0.3 <= distance_closest_object < 0.5:
-            reward_avoid *= 0.2
-        elif distance_closest_object < 0.3:
-            reward_avoid = 1e-3 # Likely crashed
+    def f(x):
+        return pow16_7(x)
 
-    # Calculate reward by putting different weights on 
-    # the two aspects above
-    reward += 1.0 * reward_lane + 4.0 * reward_avoid
+    reward = min(max(f(norm_dist)*penalty(), 0.0), 1.0) #clamp [0.0, 1.0]
 
     return reward
+

@@ -3,23 +3,21 @@ version: '3.7'
 networks:
   default:
     external:
-      name: sagemaker-local
+      name: sagemaker-local-1
 
 services:
   minio:
     image: minio/minio
     ports:
       - "9000:9000"
-    container_name: minio
     command: server /data
     volumes:
       - ./data/minio:/data
     restart: unless-stopped
     env_file: config.env
   rl_coach:
-    image: mattcamp/dr-coach:latest
+    image: ending2015a/dr-coach:latest
     env_file: config.env
-    container_name: coach
     volumes:
     - '//var/run/docker.sock:/var/run/docker.sock'
     - './src/rl_coach_2020_v2:/deepracer/rl_coach'
@@ -32,9 +30,8 @@ services:
     volumes:
       - ./data/robomaker:/root/.ros/
     ports:
-      - "8080:5900"
-      - "8888:8080" 
-    container_name: robomaker
+      - "8013:5900"
+      - "8014:8080" 
     restart: unless-stopped
     env_file: config.env
     depends_on:

@@ -50,16 +50,16 @@ if [ $? -ne 0 ]; then
 fi
 
 # check if we need to configure our docker interface
-SAGEMAKER_NETWORK=`docker network ls | grep -c sagemaker-local`
+SAGEMAKER_NETWORK=`docker network ls | grep -c $SAGEMAKER_NETWORK_NAME`
 if [ $SAGEMAKER_NETWORK -eq 0 ]; then
-  docker network create --driver bridge sagemaker-local
+  docker network create --driver bridge $SAGEMAKER_NETWORK_NAME
 fi
 
 # Notebook instance Docker networking fixes
 RUNNING_ON_NOTEBOOK_INSTANCE=`sudo iptables -S OUTPUT -t nat | grep -c 169.254.0.2`
 
 # Get the Docker Network CIDR and IP for the sagemaker-local docker interface.
-SAGEMAKER_INTERFACE=br-`docker network ls | grep sagemaker-local | cut -d' ' -f1`
+SAGEMAKER_INTERFACE=br-`docker network ls | grep $SAGEMAKER_NETWORK_NAME | cut -d' ' -f1`
 DOCKER_NET=`ip route | grep $SAGEMAKER_INTERFACE | cut -d" " -f1`
 DOCKER_IP=`ip route | grep $SAGEMAKER_INTERFACE | cut -d" " -f12`
 
