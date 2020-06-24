@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ $1 != "" ]; then
+  SAGEMAKER_ID=$1
+  echo "SAGEMAKER_ID=$1"
+fi
+
 while [ -z $SAGEMAKER_ID ]
 do
   echo "Waiting for sagemaker to start..."

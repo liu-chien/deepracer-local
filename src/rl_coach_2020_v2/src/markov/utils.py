@@ -282,6 +282,10 @@ def copy_best_frozen_model_to_sm_output_dir(s3_bucket, s3_prefix, region,
                 .format(best_checkpoint_num_s3, last_checkpoint_num_s3))
     best_model_name = 'model_{}.pb'.format(best_checkpoint_num_s3)
     last_model_name = 'model_{}.pb'.format(last_checkpoint_num_s3)
+    print("source_dir:", source_dir)                    # ./frozen_models/agent
+    print("source_dir_pb_files:", source_dir_pb_files)  # ['model_0.pb']
+    print("dest_dir:", dest_dir)                        # /opt/ml/model/agent
+    print("dest_dir_pb_files:", dest_dir_pb_files)      # []
     if len(source_dir_pb_files) < 1:
         log_and_exit("Could not find any frozen model file in the local directory",
                      SIMAPP_S3_DATA_STORE_EXCEPTION,
@@ -292,6 +296,7 @@ def copy_best_frozen_model_to_sm_output_dir(s3_bucket, s3_prefix, region,
             logger.info("More than one model.pb found in the source directory. Choosing the "
                         "first one to copy to destination: {}".format(source_dir_pb_files[0]))
         # copy the frozen model present in the source directory
+        print('1')
         logger.info("Copying the frozen checkpoint from {} to {}.".format(
                     os.path.join(source_dir, source_dir_pb_files[0]), os.path.join(dest_dir, "model.pb")))
         shutil.copy(os.path.join(source_dir, source_dir_pb_files[0]), os.path.join(dest_dir, "model.pb"))
@@ -301,8 +306,20 @@ def copy_best_frozen_model_to_sm_output_dir(s3_bucket, s3_prefix, region,
             os.remove(os.path.join(dest_dir, filename))
 
         # Copy the frozen model for the current best checkpoint to the destination directory
-        logger.info("Copying the frozen checkpoint from {} to {}.".format(
-                    os.path.join(source_dir, best_model_name), os.path.join(dest_dir, "model.pb")))
+        print('2')
+        if not os.path.isfile(os.path.join(source_dir, best_model_name)):
+            logger.info("Copying the frozen checkpoint from {} to {}.".format(
+                        os.path.join(source_dir, best_model_name), os.path.join(dest_dir, "model.pb")))
+            download_frozen_model(s3_bucket,
+                                    s3_prefix,
+                                    region,
+                                    best_model_name,
+                                    logger,
+                                    s3_endpoint_url)
+            logger.info("Copying/Overwtiring the frozen checkpoint from {} to {}.".format(
+                        os.path.join(os.path.join(source_dir, best_model_name), os.path.join(source_dir, "model_0.pb"))
+            shutil.copyfile(os.path.join(source_dir, best_model_name), os.path.join(source_dir, "model_0.pb"))
+            assert False
         shutil.copy(os.path.join(source_dir, best_model_name), os.path.join(dest_dir, "model.pb"))
 
         # Loop through the current list of frozen models in source directory and
@@ -317,6 +334,48 @@ def copy_best_frozen_model_to_sm_output_dir(s3_bucket, s3_prefix, region,
                     logger.error("Frozen model name not in the right format in the source directory: {}, {}"
                                  .format(filename, source_dir))
 
+def download_frozen_model(s3_bucket, s3_prefix, region, model_name, logger, s3_endpoint_url=None):
+    '''Returns the best checkpoint stored in the best checkpoint json
+       s3_bucket - DeepRacer s3 bucket
+       s3_prefix - Prefix for the training job for which to select the best model for
+       model_name - source model name
+       region - Name of the aws region where the job ran
+       checkpoint_type - BEST_CHECKPOINT/LAST_CHECKPOINT
+    '''
+    # ToDo
+    try:
+        session = boto3.Session()
+        s3_client = session.client('s3', region_name=region, endpoint_url=s3_endpoint_url, config=get_boto_config())
+        # Download the best model if available
+        frozen_model = os.path.join(os.getcwd(), 'frozen_models', 'agent', model_name)
+
+        logger.info("Download the frozen model from {} to {}.".format(
+                    os.path.join(s3_prefix, 'model', model_name), frozen_model))
+        s3_client.download_file(Bucket=s3_bucket,
+                                Key=os.path.join(s3_prefix, 'model', model_name),
+                                Filename=frozen_model)
+    except botocore.exceptions.ClientError as err:
+        if err.response['Error']['Code'] == "404":
+            logger.info("Unable to find best model data")
+            return None
+        else:
+            log_and_exit("Unable to download frozen model: {}, {}".\
+                         format(s3_bucket, err.response['Error']['Code']),
+                         SIMAPP_SIMULATION_WORKER_EXCEPTION, SIMAPP_EVENT_ERROR_CODE_400)
+    except Exception as ex:
+        log_and_exit("Can't download best frozen model {}".format(ex),
+                     SIMAPP_SIMULATION_WORKER_EXCEPTION, SIMAPP_EVENT_ERROR_CODE_500)
+    # try:
+    #     with open(deepracer_checkpoint_json) as deepracer_checkpoint_file:
+    #         checkpoint = json.load(deepracer_checkpoint_file)[checkpoint_type]["name"]
+    #         if not checkpoint:
+    #             raise Exception("No checkpoint recorded")
+    #     os.remove(deepracer_checkpoint_json)
+    # except Exception as ex:
+    #     logger.info("Unable to parse best checkpoint data: {}, using last \
+    #                 checkpoint instead".format(ex))
+    #     return None
+    return None
 
 def get_best_checkpoint(s3_bucket, s3_prefix, region, s3_endpoint_url=None):
     return get_deepracer_checkpoint(s3_bucket=s3_bucket,

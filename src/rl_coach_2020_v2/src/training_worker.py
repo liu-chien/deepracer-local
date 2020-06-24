@@ -47,6 +47,9 @@ def training_worker(graph_manager, task_parameters, user_batch_size,
         # training loop
         steps = 0
 
+        # Load map
+        # steps = graph_manager.load_checkpoint()
+
         graph_manager.setup_memory_backend()
         graph_manager.signal_ready()
 
