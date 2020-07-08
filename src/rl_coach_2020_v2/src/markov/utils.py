@@ -317,7 +317,7 @@ def copy_best_frozen_model_to_sm_output_dir(s3_bucket, s3_prefix, region,
                                     logger,
                                     s3_endpoint_url)
             logger.info("Copying/Overwtiring the frozen checkpoint from {} to {}.".format(
-                        os.path.join(os.path.join(source_dir, best_model_name), os.path.join(source_dir, "model_0.pb"))
+                        os.path.join(os.path.join(source_dir, best_model_name), os.path.join(source_dir, "model_0.pb"))))
             shutil.copyfile(os.path.join(source_dir, best_model_name), os.path.join(source_dir, "model_0.pb"))
             assert False
         shutil.copy(os.path.join(source_dir, best_model_name), os.path.join(dest_dir, "model.pb"))

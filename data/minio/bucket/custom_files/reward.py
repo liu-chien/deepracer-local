@@ -1,39 +1,33 @@
 def reward_function(params):
     '''
-    Example of rewarding the agent to stay inside two borders
-    and penalizing getting too close to the objects in front
+    Example of penalize steering, which helps mitigate zig-zag behaviors
     '''
-
-    import math
-
-    # Read input variables
-    waypoints = params['waypoints']
-    closest_waypoints = params['closest_waypoints']
-    heading = params['heading']
-    all_wheels_on_track = params['all_wheels_on_track']
+    
+    # Read input parameters
     distance_from_center = params['distance_from_center']
     track_width = params['track_width']
-    progress = params['progress']
-    steps = params['steps']
+    steering = abs(params['steering_angle']) # Only need the absolute steering angle
 
-    norm_dist = min(distance_from_center/(track_width*0.5), 1.0)
+    # Calculate 3 marks that are farther and father away from the center line
+    marker_1 = 0.1 * track_width
+    marker_2 = 0.25 * track_width
+    marker_3 = 0.5 * track_width
 
-    def cos_pi2(x):
-        return math.cos(norm_dist*1.57079632679)
+    # Give higher reward if the car is closer to center line and vice versa
+    if distance_from_center <= marker_1:
+        reward = 1.0
+    elif distance_from_center <= marker_2:
+        reward = 0.5
+    elif distance_from_center <= marker_3:
+        reward = 0.1
+    else:
+        reward = 1e-3  # likely crashed/ close to off track
 
-    def pow2(x):
-        return -(x**2)+1
+    # Steering penality threshold, change the number based on your action space setting
+    ABS_STEERING_THRESHOLD = 15 
 
-    def pow16_7(x):
-        return -math.pow(abs(x), 2.285714) + 1
-    
-    def penalty():
-        return float(progress*2.0)/max(float(steps), 1.0)
+    # Penalize reward if the car is steering too much
+    if steering > ABS_STEERING_THRESHOLD:
+        reward *= 0.8
 
-    def f(x):
-        return pow16_7(x)
-
-    reward = min(max(f(norm_dist)*penalty(), 0.0), 1.0) #clamp [0.0, 1.0]
-
-    return reward
-
+    return float(reward)

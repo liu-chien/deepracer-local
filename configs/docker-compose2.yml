@@ -3,13 +3,13 @@ version: '3.7'
 networks:
   default:
     external:
-      name: sagemaker-local-1
+      name: sagemaker-local-2
 
 services:
   minio:
     image: minio/minio
     ports:
-      - "9001:9000"
+      - "9002:9000"
     command: server /data
     volumes:
       - ./data/minio:/data
@@ -30,8 +30,8 @@ services:
     volumes:
       - ./data/robomaker:/root/.ros/
     ports:
-      - "9013:5900"
-      - "9014:8080" 
+      - "9023:5900"
+      - "9024:8080" 
     restart: unless-stopped
     env_file: config.env
     depends_on:
